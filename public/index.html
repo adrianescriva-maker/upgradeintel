@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upgrade Intelligence — CMP Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap');
+  :root {
+    --bg:#0a0c10;--surface:#11141a;--surface2:#181c24;--border:#1e2330;
+    --accent:#00e5a0;--accent2:#ff6b35;--accent3:#4d8bff;
+    --warn:#ffc94d;--danger:#ff4d6a;--text:#e8eaf0;--muted:#5a6075;
+    --M:#ffc94d;--L:#00e5a0;--S:#4d8bff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,160,0.03)1px,transparent 1px),linear-gradient(90deg,rgba(0,229,160,0.03)1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  .wrapper{position:relative;z-index:1;}
+  #connect-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .connect-card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:48px 44px;width:100%;max-width:520px;text-align:center;}
+  .connect-logo{width:64px;height:64px;background:linear-gradient(135deg,var(--accent),var(--accent3));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 24px;}
+  .connect-title{font-size:26px;font-weight:800;margin-bottom:8px;}
+  .connect-sub{font-size:13px;color:var(--muted);margin-bottom:36px;line-height:1.6;}
+  .connect-field{margin-bottom:16px;text-align:left;}
+  .connect-field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;}
+  .connect-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:var(--text);font-size:13px;font-family:'DM Mono',monospace;outline:none;transition:border-color 0.2s;}
+  .connect-input:focus{border-color:var(--accent);}
+  .connect-input::placeholder{color:var(--muted);}
+  .connect-error{display:none;background:rgba(255,77,106,0.1);border:1px solid rgba(255,77,106,0.3);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--danger);font-family:'DM Mono',monospace;margin-bottom:14px;text-align:left;}
+  .connect-btn{width:100%;background:var(--accent);color:var(--bg);border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:800;font-family:'Syne',sans-serif;cursor:pointer;transition:all 0.2s;}
+  .connect-btn:hover{background:#00ffb3;transform:translateY(-2px);}
+  .demo-btn{width:100%;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:13px;font-weight:600;font-family:'Syne',sans-serif;cursor:pointer;transition:all 0.2s;margin-top:10px;}
+  .demo-btn:hover{border-color:var(--accent);color:var(--accent);}
+  #loading-screen{display:none;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:20px;}
+  .loader{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-text{font-size:13px;color:var(--muted);font-family:'DM Mono',monospace;}
+  .loading-step{font-size:11px;color:var(--accent);font-family:'DM Mono',monospace;animation:blink 1s infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.3)}}
+  #dashboard-screen{display:none;}
+  header{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;border-bottom:1px solid var(--border);background:rgba(10,12,16,0.9);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100;}
+  .logo{display:flex;align-items:center;gap:12px;}
+  .logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent3));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .logo-text{font-size:17px;font-weight:800;letter-spacing:-0.5px;}
+  .logo-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;}
+  .header-right{display:flex;align-items:center;gap:12px;}
+  .stripe-badge{display:flex;align-items:center;gap:8px;background:rgba(99,91,255,0.15);border:1px solid rgba(99,91,255,0.3);border-radius:20px;padding:6px 14px;font-size:12px;font-family:'DM Mono',monospace;}
+  .stripe-dot{width:7px;height:7px;border-radius:50%;background:#635bff;}
+  .stripe-dot.live{background:var(--accent);animation:pulse 2s infinite;}
+  .stripe-dot.demo{background:var(--warn);}
+  .mode-pill{font-size:10px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:10px;background:rgba(255,201,77,0.1);color:var(--warn);border:1px solid rgba(255,201,77,0.3);}
+  .mode-pill.live{background:rgba(0,229,160,0.1);color:var(--accent);border-color:rgba(0,229,160,0.3);}
+  .cache-pill{font-size:10px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:10px;background:rgba(77,139,255,0.1);color:var(--accent3);border:1px solid rgba(77,139,255,0.3);}
+  .sync-btn{background:var(--accent);color:var(--bg);border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;transition:all 0.2s;}
+  .sync-btn:hover{background:#00ffb3;transform:translateY(-1px);}
+  .disconnect-btn{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;font-family:'Syne',sans-serif;cursor:pointer;transition:all 0.2s;}
+  .disconnect-btn:hover{border-color:var(--danger);color:var(--danger);}
+  main{padding:28px 32px;max-width:1600px;margin:0 auto;}
+  .kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px;}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+  .kpi:hover{border-color:var(--accent);}
+  .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+  .kpi.green::before{background:var(--accent);}
+  .kpi.orange::before{background:var(--accent2);}
+  .kpi.blue::before{background:var(--accent3);}
+  .kpi.yellow::before{background:var(--warn);}
+  .kpi.red::before{background:var(--danger);}
+  .kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;}
+  .kpi-value{font-size:28px;font-weight:800;line-height:1;margin-bottom:4px;}
+  .kpi-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .section-title{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);display:flex;align-items:center;gap:10px;}
+  .section-title::before{content:'';display:inline-block;width:4px;height:14px;border-radius:2px;}
+  .section-title.green::before{background:var(--accent);}
+  .section-title.orange::before{background:var(--accent2);}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;transition:border-color 0.2s;}
+  .card:hover{border-color:#2a3040;}
+  .filter-row{display:flex;gap:10px;margin-bottom:28px;flex-wrap:wrap;align-items:center;}
+  .filter-label{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-right:4px;}
+  .filter-btn{padding:7px 16px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-family:'Syne',sans-serif;font-weight:600;cursor:pointer;transition:all 0.2s;}
+  .filter-btn:hover,.filter-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,229,160,0.08);}
+  .filter-btn.M.active{border-color:var(--M);color:var(--M);background:rgba(255,201,77,0.08);}
+  .filter-btn.L.active{border-color:var(--L);color:var(--L);background:rgba(0,229,160,0.08);}
+  .search-input{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:7px 16px;color:var(--text);font-size:12px;font-family:'DM Mono',monospace;width:220px;outline:none;transition:border-color 0.2s;margin-left:auto;}
+  .search-input:focus{border-color:var(--accent);}
+  .search-input::placeholder{color:var(--muted);}
+  .table-wrapper{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{text-align:left;padding:10px 14px;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-family:'DM Mono',monospace;border-bottom:1px solid var(--border);white-space:nowrap;}
+  tbody tr{border-bottom:1px solid rgba(30,35,48,0.5);transition:background 0.15s;cursor:pointer;}
+  tbody tr:hover{background:var(--surface2);}
+  td{padding:12px 14px;vertical-align:middle;}
+  .client-name{font-weight:700;font-size:14px;}
+  .client-email{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+  .badge{display:inline-block;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:0.5px;}
+  .badge-S{background:rgba(77,139,255,0.15);color:var(--S);border:1px solid rgba(77,139,255,0.3);}
+  .badge-M{background:rgba(255,201,77,0.15);color:var(--M);border:1px solid rgba(255,201,77,0.3);}
+  .badge-L{background:rgba(0,229,160,0.15);color:var(--L);border:1px solid rgba(0,229,160,0.3);}
+  .badge-Y{background:rgba(77,139,255,0.12);color:var(--accent3);border:1px solid rgba(77,139,255,0.25);font-size:9px;padding:2px 6px;margin-left:4px;}
+  .score-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;font-family:'DM Mono',monospace;}
+  .score-crit{background:rgba(255,77,106,0.15);color:var(--danger);border:1px solid rgba(255,77,106,0.3);}
+  .score-high{background:rgba(255,201,77,0.15);color:var(--warn);border:1px solid rgba(255,201,77,0.3);}
+  .score-ok{background:rgba(90,96,117,0.15);color:var(--muted);border:1px solid rgba(90,96,117,0.3);}
+  .score-dot{width:6px;height:6px;border-radius:50%;}
+  .score-crit .score-dot{background:var(--danger);animation:pulse 1s infinite;}
+  .score-high .score-dot{background:var(--warn);}
+  .score-ok .score-dot{background:var(--muted);}
+  .donut-wrap{display:flex;align-items:center;gap:24px;}
+  .donut-legend{flex:1;}
+  .legend-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+  .legend-item:last-child{border-bottom:none;}
+  .legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+  .legend-name{font-size:13px;font-weight:600;flex:1;}
+  .legend-count{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;}
+  .legend-pct{font-size:12px;font-weight:700;font-family:'DM Mono',monospace;}
+  .overage-list{display:flex;flex-direction:column;gap:12px;}
+  .overage-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface2);border-radius:10px;border-left:3px solid;transition:transform 0.2s;cursor:pointer;}
+  .overage-item:hover{transform:translateX(3px);}
+  .overage-item.critical{border-left-color:var(--danger);}
+  .overage-item.high{border-left-color:var(--warn);}
+  .overage-name{font-weight:700;font-size:13px;}
+  .overage-plan{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+  .overage-right{text-align:right;}
+  .overage-amt{font-size:20px;font-weight:800;}
+  .overage-amt.critical{color:var(--danger);}
+  .overage-amt.high{color:var(--warn);}
+  .overage-base{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+  .multi-sub-card{background:linear-gradient(135deg,rgba(255,107,53,0.06),rgba(255,107,53,0.02));border:1px solid rgba(255,107,53,0.2);border-radius:12px;padding:16px 20px;margin-bottom:12px;transition:all 0.2s;}
+  .multi-sub-card:hover{border-color:rgba(255,107,53,0.4);}
+  .multi-sub-card.normal{background:linear-gradient(135deg,rgba(77,139,255,0.04),transparent);border-color:rgba(77,139,255,0.15);}
+  .multi-sub-card.normal:hover{border-color:rgba(77,139,255,0.35);}
+  .multi-sub-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .multi-client-name{font-weight:700;font-size:15px;}
+  .multi-subs-list{display:flex;flex-direction:column;gap:6px;}
+  .multi-sub-row{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius:8px;padding:8px 12px;}
+  .multi-sub-row-left{display:flex;align-items:center;gap:10px;}
+  .multi-sub-row-right{display:flex;align-items:center;gap:12px;font-family:'DM Mono',monospace;font-size:12px;}
+  .contacted-btn{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;font-family:'Syne',sans-serif;font-weight:600;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+  .contacted-btn:hover{border-color:var(--accent3);color:var(--accent3);}
+  .contacted-btn.done{background:rgba(77,139,255,0.12);border-color:rgba(77,139,255,0.4);color:var(--accent3);}
+  .contacted-row{background:rgba(77,139,255,0.04);border-left:3px solid var(--accent3);opacity:0.6;}
+  .contacted-row:hover{opacity:1;}
+  .action-btn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:11px;font-family:'Syne',sans-serif;font-weight:600;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+  .action-btn:hover{background:var(--surface2);border-color:var(--accent);color:var(--accent);}
+  .action-btn.primary{background:rgba(0,229,160,0.1);border-color:rgba(0,229,160,0.3);color:var(--accent);}
+  .action-btn.primary:hover{background:rgba(0,229,160,0.2);}
+  .empty{text-align:center;padding:40px;color:var(--muted);font-size:13px;font-family:'DM Mono',monospace;}
+  .no-results{display:none;text-align:center;padding:40px;color:var(--muted);}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,12,16,0.85);backdrop-filter:blur(8px);z-index:200;align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;width:560px;max-width:95vw;max-height:85vh;overflow-y:auto;padding:28px;animation:slideUp 0.25s ease;}
+  @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+  .modal-title{font-size:18px;font-weight:800;}
+  .modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;}
+  .modal-close:hover{color:var(--text);}
+  .modal-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .modal-row:last-child{border-bottom:none;}
+  .modal-row-label{color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;}
+  .modal-row-val{font-weight:700;text-align:right;}
+  .tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--surface2);padding:4px;border-radius:10px;width:fit-content;}
+  .tab{padding:7px 18px;border-radius:7px;border:none;background:none;color:var(--muted);font-size:12px;font-family:'Syne',sans-serif;font-weight:600;cursor:pointer;transition:all 0.2s;}
+  .tab.active{background:var(--surface);color:var(--text);}
+  .multi-section-title{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-family:'DM Mono',monospace;padding:16px 0 8px;border-top:1px solid var(--border);margin-top:8px;}
+  .multi-section-title:first-child{border-top:none;padding-top:0;}
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:var(--bg);}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--muted);}
+  @media(max-width:900px){.kpi-strip{grid-template-columns:repeat(2,1fr);}.grid-2{grid-template-columns:1fr;}main{padding:16px;}header{padding:14px 16px;}}
+</style>
+<!-- Nécessaire pour Google Sign-In -->
+<script src="https://accounts.google.com/gsi/client" async></script>
+<script>window.GOOGLE_CLIENT_ID = 'TON_CLIENT_ID.apps.googleusercontent.com';</script>
+</head>
+<body>
+<div class="wrapper">
+
+<!-- LOGIN GOOGLE -->
+<div id="login-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:48px 44px;width:100%;max-width:420px;text-align:center;">
+    <div style="width:64px;height:64px;background:linear-gradient(135deg,var(--accent),var(--accent3));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 24px;">🍪</div>
+    <div style="font-size:26px;font-weight:800;margin-bottom:8px;">Upgrade Intelligence</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:36px;line-height:1.6;">Connectez-vous avec votre compte<br><strong style="color:var(--text)">@axeptio.eu</strong></div>
+    <div id="google-signin-btn" style="display:flex;justify-content:center;"></div>
+    <div id="auth-error" style="display:none;margin-top:16px;background:rgba(255,77,106,0.1);border:1px solid rgba(255,77,106,0.3);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--danger);font-family:'DM Mono',monospace;"></div>
+  </div>
+</div>
+
+<!-- CONNECT -->
+<div id="connect-screen" style="display:none;">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:48px 44px;width:100%;max-width:420px;text-align:center;">
+      <div id="user-avatar" style="width:48px;height:48px;border-radius:50%;margin:0 auto 16px;overflow:hidden;"></div>
+      <div id="user-name" style="font-size:18px;font-weight:800;margin-bottom:4px;"></div>
+      <div id="user-email" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:32px;"></div>
+      <div class="connect-error" id="connect-error"></div>
+      <button class="connect-btn" onclick="connectAndLoad()">Charger le dashboard →</button>
+      <button class="demo-btn" onclick="loadDemo()">Continuer avec les données démo</button>
+      <button style="width:100%;background:transparent;color:var(--muted);border:none;font-size:12px;font-family:'Syne',sans-serif;cursor:pointer;margin-top:16px;padding:8px;" onclick="logout()">Se déconnecter</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="loader"></div>
+  <div class="loading-text">Connexion à Stripe en cours...</div>
+  <div class="loading-step" id="loading-step">Initialisation</div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard-screen">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🍪</div>
+      <div>
+        <div class="logo-text">Upgrade Intelligence</div>
+        <div class="logo-sub">CMP · Customer Support</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="cache-pill" id="cache-pill" style="display:none"></span>
+      <span class="mode-pill" id="mode-pill">DÉMO</span>
+      <div class="stripe-badge">
+        <div class="stripe-dot" id="stripe-dot"></div>
+        <span id="stripe-badge-label">Démo</span>
+      </div>
+      <button class="sync-btn" onclick="refreshData()">⟳ Refresh</button>
+      <button class="disconnect-btn" onclick="logout()">Déconnecter</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('overview',this)">Vue d'ensemble</button>
+      <button class="tab" onclick="switchTab('clients',this)">Tous les clients</button>
+
+    </div>
+
+    <!-- OVERVIEW -->
+    <div id="tab-overview">
+      <div class="kpi-strip">
+        <div class="kpi green"><div class="kpi-label">Clients total</div><div class="kpi-value" id="kpi-total">—</div><div class="kpi-sub">abonnements S+M+L actifs</div></div>
+        <div class="kpi red"><div class="kpi-label">🔴 En surfacturation</div><div class="kpi-value" id="kpi-crit">—</div><div class="kpi-sub">next invoice très élevée</div></div>
+        <div class="kpi yellow"><div class="kpi-label">🟡 En alerte</div><div class="kpi-value" id="kpi-high">—</div><div class="kpi-sub">au-delà du seuil</div></div>
+        <div class="kpi blue"><div class="kpi-label">Plans Small</div><div class="kpi-value" id="kpi-small">—</div><div class="kpi-sub">abonnements S actifs</div></div>
+        <div class="kpi blue"><div class="kpi-label">Surcoût total détecté</div><div class="kpi-value" id="kpi-surplus">—</div><div class="kpi-sub">au-delà du prix de base</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-header"><div class="section-title green">Distribution S / M / L</div></div>
+          <div class="donut-wrap">
+            <canvas id="donutChart" width="140" height="140"></canvas>
+            <div class="donut-legend" id="donut-legend"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-header"><div class="section-title orange">Top surfacturations</div></div>
+          <div class="overage-list" id="overage-list"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:28px;">
+        <div class="section-header"><div class="section-title green">Opportunités d'upgrade prioritaires</div></div>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>CLIENT</th><th>PLAN</th><th>PRIX DE BASE</th><th>NEXT INVOICE</th><th>SURPLUS</th><th>STATUT</th><th>CONTACTÉ</th></tr></thead>
+            <tbody id="upgrade-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLIENTS -->
+    <div id="tab-clients" style="display:none;">
+      <div class="filter-row">
+        <span class="filter-label">Plan :</span>
+        <button class="filter-btn active" data-filter="all" onclick="filterClients('all',this)">Tous</button>
+        <button class="filter-btn" data-filter="S" onclick="filterClients('S',this)">Small</button>
+        <button class="filter-btn M" data-filter="M" onclick="filterClients('M',this)">Medium</button>
+        <button class="filter-btn L" data-filter="L" onclick="filterClients('L',this)">Large</button>
+        <button class="filter-btn" data-filter="over" onclick="filterClients('over',this)">🔴 Surfact.</button>
+        <input class="search-input" type="text" placeholder="Rechercher client / email..." oninput="searchClients(this.value)">
+      </div>
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>CLIENT</th><th>PLAN</th><th>PRIX DE BASE</th><th>NEXT INVOICE</th><th>SURPLUS</th><th>STATUT</th><th></th></tr></thead>
+            <tbody id="all-clients-body"></tbody>
+          </table>
+          <div class="no-results" id="no-results">Aucun résultat.</div>
+        </div>
+      </div>
+    </div>
+
+
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Détail client</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+</div>
+
+<script>
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+
+async function fetchAxeptioUsers(projectId){
+  if(!projectId) return [];
+  try{
+    const res = await fetch(`${API_BASE}/api/axeptio/v1/vault/projects/${projectId}/users`, {
+      headers: { 'x-auth-token': authToken }
+    });
+    if(!res.ok) return [];
+    const data = await res.json();
+    console.log('Axeptio raw response:', JSON.stringify(data));
+    const list = data.items || data.users || data.data || (Array.isArray(data) ? data : []);
+    return list;
+  }catch(e){ console.error('Axeptio fetch error:', e); return []; }
+}
+
+const PLANS = {
+  S: { name:'Small',  base:{ month:29,  year:313  }, alert:{ month:129, year:1393 }, next:'M' },
+  M: { name:'Medium', base:{ month:69,  year:745  }, alert:{ month:80, year:850  }, next:'L' },
+  L: { name:'Large',  base:{ month:129, year:1393 }, alert:{ month:150, year:1700 }, next:null },
+};
+
+const CACHE_KEY = 'upgrade_intel_v4';
+const CACHE_TTL = 10 * 60 * 1000;
+
+function saveCache(k,d){ try{ localStorage.setItem(k,JSON.stringify({d,ts:Date.now()})); }catch(e){} }
+function loadCacheRaw(k){ try{ const r=localStorage.getItem(k); if(!r) return null; const o=JSON.parse(r); if(Date.now()-o.ts>CACHE_TTL) return null; return o; }catch(e){ return null; } }
+function clearCache(){ try{ localStorage.removeItem(CACHE_KEY); }catch(e){} }
+function updateCachePill(ts){ const p=document.getElementById('cache-pill'); if(!ts){p.style.display='none';return;} const ago=Math.round((Date.now()-ts)/60000); p.textContent=ago<1?'⚡ Cache < 1 min':'⚡ Cache ~'+ago+' min'; p.style.display='inline-block'; }
+
+let allClients=[], isDemo=false, cacheTs=null;
+
+const CONTACTED_KEY='upgrade_contacted';
+function loadContacted(){ try{ return JSON.parse(localStorage.getItem(CONTACTED_KEY)||'{}'); }catch(e){ return {}; } }
+function saveContacted(obj){ try{ localStorage.setItem(CONTACTED_KEY,JSON.stringify(obj)); }catch(e){} }
+function isContacted(subId){ return !!loadContacted()[subId]; }
+function toggleContacted(subId){
+  const obj=loadContacted();
+  if(obj[subId]) delete obj[subId]; else obj[subId]={ts:Date.now()};
+  saveContacted(obj); renderDashboard();
+  if(document.getElementById('modal').classList.contains('open')) openModal(subId);
+}
+
+// ── Stripe helpers ──────────────────────────────────────────
+async function stripeGet(path, params={}){
+  const parts=[];
+  for(const [k,v] of Object.entries(params)){
+    if(Array.isArray(v)) v.forEach(i=>parts.push(encodeURIComponent(k+'[]')+'='+encodeURIComponent(i)));
+    else parts.push(encodeURIComponent(k)+'='+encodeURIComponent(v));
+  }
+  const url = `${API_BASE}/api/stripe${path}${parts.length?'?'+parts.join('&'):''}`;
+  const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(),20000);
+  try{
+    const res=await fetch(url,{headers:{'x-auth-token': authToken},signal:ctrl.signal});
+    clearTimeout(t);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json(); if(data.error) throw new Error(data.error.message||data.error); return data;
+  }catch(e){ clearTimeout(t); if(e.name==='AbortError') throw new Error('Timeout'); throw e; }
+}
+
+async function stripeSearchAll(query){
+  let all=[], page=null;
+  while(true){
+    const params={query, limit:100, expand:['data.customer','data.items.data.price']};
+    if(page) params.page=page;
+    const data=await stripeGet('/v1/subscriptions/search', params);
+    all=all.concat(data.data||[]);
+    if(!data.has_more||!data.next_page) break;
+    page=data.next_page;
+  }
+  return all;
+}
+
+
+
+// ── Detection ───────────────────────────────────────────────
+function detectPlan(sub){
+  const meta=(sub.metadata?.plan_type||sub.metadata?.plan||'').toUpperCase().trim();
+  if(meta==='M'||meta==='MEDIUM') return 'M';
+  if(meta==='L'||meta==='LARGE')  return 'L';
+  if(meta==='S'||meta==='SMALL')  return 'S';
+  const cands=[];
+  for(const item of (sub.items?.data||[])){
+    cands.push(item.price?.nickname||'',item.price?.id||'',item.plan?.nickname||'');
+  }
+  cands.push(sub.description||'');
+  for(const raw of cands){
+    const s=raw.toLowerCase();
+    if(s.includes('large'))  return 'L';
+    if(s.includes('medium')) return 'M';
+    if(s.includes('small'))  return 'S';
+  }
+  return null;
+}
+
+function detectInterval(sub){
+  for(const item of (sub.items?.data||[])){
+    const iv=item.price?.recurring?.interval||item.plan?.interval||'';
+    if(iv==='year') return 'year';
+  }
+  return 'month';
+}
+
+function subToClient(sub, forceInclude=false){
+  const plan=detectPlan(sub); if(!plan) return null;
+  const interval=detectInterval(sub);
+  const nextInvoice=parseFloat(sub.metadata?.nextInvoiceAmount||sub.metadata?.next_invoice_amount||'0');
+  const basePrice=PLANS[plan].base[interval];
+  const alertThreshold=PLANS[plan].alert[interval];
+  const isOverage=nextInvoice>=alertThreshold;
+  if(!forceInclude && !isOverage) return null;
+  const surplus=isOverage ? Math.round((nextInvoice-basePrice)*100)/100 : 0;
+  const cust=typeof sub.customer==='object'?sub.customer:{id:sub.customer,name:'',email:''};
+  return{
+    id:sub.id, stripeId:cust.id, subId:sub.id,
+    name:cust.name||cust.email||cust.id, email:cust.email||'',
+    plan, interval, basePrice, alertThreshold, nextInvoice, surplus, isOverage,
+    projectId:sub.metadata?.projectId||'', userId:sub.metadata?.userId||'',
+    renewDate: sub.current_period_end ? new Date(sub.current_period_end*1000).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}) : '—',
+    since:new Date(sub.created*1000).toLocaleDateString('fr-FR',{month:'short',year:'numeric'}),
+  };
+}
+
+// ── Connect ─────────────────────────────────────────────────
+async function connectAndLoad(){
+  hideError(); showLoading();
+  try{ await loadStripeData(); }
+  catch(e){ hideLoading(); showError('Erreur : '+e.message); }
+}
+
+function showConnectScreen(){
+  if(currentUser){
+    document.getElementById('user-name').textContent = currentUser.name || '';
+    document.getElementById('user-email').textContent = currentUser.email || '';
+    if(currentUser.picture){
+      document.getElementById('user-avatar').innerHTML = `<img src="${currentUser.picture}" style="width:100%;height:100%;object-fit:cover;">`;
+    }
+  }
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('connect-screen').style.display='block';
+}
+
+async function loadStripeData(forceRefresh=false){
+  const ck=btoa(stripeKey).slice(0,32);
+  if(!forceRefresh){
+    const c1=loadCacheRaw(CACHE_KEY);
+    if(c1){ allClients=c1.d; cacheTs=c1.ts; applyUIMode(); renderDashboard(); showDashboard(); updateCachePill(cacheTs); return; }
+  }
+  setStep('Recherche des surfacturations...');
+  const [r1,r2]=await Promise.all([
+    stripeSearchAll('status:"active" -metadata["afterLimitWarningSentAt"]:null'),
+    stripeSearchAll('status:"active" -metadata["beforeLimitWarningSentAt"]:null'),
+  ]);
+  const seen=new Set();
+  const subsOver=[...r1,...r2].filter(s=>{ if(seen.has(s.id)) return false; seen.add(s.id); return true; });
+  allClients=subsOver.map(s=>subToClient(s,false)).filter(Boolean);
+  cacheTs=Date.now();
+  saveCache(CACHE_KEY, allClients);
+  applyUIMode(); renderDashboard(); showDashboard(); updateCachePill(cacheTs);
+}
+
+function applyUIMode(){
+  const pill=document.getElementById('mode-pill');
+  pill.textContent='LIVE'; pill.className='mode-pill live';
+  document.getElementById('stripe-dot').className='stripe-dot live';
+  document.getElementById('stripe-badge-label').textContent='Live · Stripe';
+}
+
+// ── Demo ────────────────────────────────────────────────────
+function loadDemo(){
+  isDemo=true; stripeKey=null;
+  const rc=a=>a[Math.floor(Math.random()*a.length)];
+  const cos=['BioSync','Cloudify','DataPilot','EcoTrack','FintechHub','GreenLeaf','Horizon AI','Innovatech','JetStream','KineticLab','LevelUp','MetaForge','NovaTech','OmniPulse','PeakFlow','Quantix','Redwood','Skyline','TechNova','UltraBase','Velocity','WarpDrive','Xstream','Yonder','Zenith','Amplify','Bastion','Cipher','Driftwood','Eureka'];
+
+  // Abonnements en surfactu (overview + clients)
+  allClients=cos.map((name,i)=>{
+    const plan=rc(['S','M','M','M','L','L']);
+    const interval=rc(['month','month','year']);
+    const base=PLANS[plan].base[interval], alert=PLANS[plan].alert[interval];
+    const next=Math.round((alert+Math.random()*(base*3))*100)/100;
+    return{id:'ov_'+i,stripeId:'cus_D'+i,subId:'sub_ov'+i,name,email:'contact@'+name.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')+'.io',plan,interval,basePrice:base,alertThreshold:alert,nextInvoice:next,surplus:Math.round((next-base)*100)/100,isOverage:true,since:rc(['Jan','Fév','Mar','Mai','Oct'])+' 202'+rc([2,3,4])};
+  });
+
+  // Multi-abo demos : groupes avec des S/M/L mixés
+  const groups=[
+    {name:'TechNova Group',  id:'cus_M1', subs:[{p:'S',i:'month'},{p:'M',i:'month'},{p:'L',i:'year'}]},
+    {name:'Amplify Digital', id:'cus_M2', subs:[{p:'S',i:'year'},{p:'S',i:'month'}]},
+    {name:'Zenith Solutions',id:'cus_M3', subs:[{p:'M',i:'month'},{p:'M',i:'month'},{p:'L',i:'month'}]},
+    {name:'Bastion Corp',    id:'cus_M4', subs:[{p:'L',i:'year'},{p:'L',i:'month'}]},
+    {name:'Cipher Labs',     id:'cus_M5', subs:[{p:'S',i:'month'},{p:'S',i:'month'},{p:'S',i:'month'},{p:'M',i:'year'}]},
+  ];
+
+  allSubsForMulti=[...allClients];
+  let idx=1000;
+  groups.forEach(g=>{
+    g.subs.forEach((s,pi)=>{
+      const base=PLANS[s.p].base[s.i], alert=PLANS[s.p].alert[s.i];
+      const isOver=Math.random()>0.5;
+      const next=isOver?Math.round((alert+Math.random()*base)*100)/100:Math.round(base*rc([0.3,0.5,0.7,0.9])*100)/100;
+      const entry={id:'ms_'+idx,stripeId:g.id,subId:'sub_ms'+idx,name:g.name,email:'sub'+(pi+1)+'@'+g.name.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')+'.io',plan:s.p,interval:s.i,basePrice:base,alertThreshold:alert,nextInvoice:next,surplus:isOver?Math.round((next-base)*100)/100:0,isOverage:isOver,since:'Jan 2024'};
+      allSubsForMulti.push(entry);
+      idx++;
+    });
+  });
+
+  cacheTs=null;
+  document.getElementById('stripe-dot').className='stripe-dot demo';
+  document.getElementById('stripe-badge-label').textContent='Données démo';
+  document.getElementById('mode-pill').textContent='DÉMO';
+  document.getElementById('mode-pill').className='mode-pill';
+  document.getElementById('cache-pill').style.display='none';
+  renderDashboard(); showDashboard();
+}
+
+// ── Screen helpers ───────────────────────────────────────────
+function showLoading(){document.getElementById('login-screen').style.display='none';document.getElementById('connect-screen').style.display='none';document.getElementById('loading-screen').style.display='flex';document.getElementById('dashboard-screen').style.display='none';}
+function hideLoading(){document.getElementById('loading-screen').style.display='none';document.getElementById('connect-screen').style.display='block';}
+function showDashboard(){document.getElementById('login-screen').style.display='none';document.getElementById('connect-screen').style.display='none';document.getElementById('loading-screen').style.display='none';document.getElementById('dashboard-screen').style.display='block';}
+function setStep(t){document.getElementById('loading-step').textContent=t;}
+function showError(m){const e=document.getElementById('connect-error');e.textContent=m;e.style.display='block';}
+function hideError(){document.getElementById('connect-error').style.display='none';}
+function disconnect(){stripeKey=null;allClients=[];clearCache();document.getElementById('stripe-key-input').value='';document.getElementById('dashboard-screen').style.display='none';document.getElementById('connect-screen').style.display='flex';}
+async function refreshData(){if(isDemo){loadDemo();return;}showLoading();try{await loadStripeData(true);}catch(e){hideLoading();alert('Erreur : '+e.message);}}
+
+// ── Helpers ──────────────────────────────────────────────────
+function surplusPct(c){return c.isOverage?(c.nextInvoice-c.basePrice)/c.basePrice:0;}
+function getStatus(c){if(!c.isOverage)return'ok';return surplusPct(c)>=0.6?'critical':'high';}
+function statusClass(c){const s=getStatus(c);return s==='critical'?'score-crit':s==='high'?'score-high':'score-ok';}
+function statusLabel(c){const s=getStatus(c);return s==='critical'?'🔴 CRITIQUE':s==='high'?'🟡 SURFACT.':'✅ OK';}
+function planBadge(p){return`<span class="badge badge-${p}">${p}</span>`;}
+function intervalBadge(i){return i==='year'?'<span class="badge-Y">YEARLY</span>':'';}
+function fmtEur(n){return n.toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:0})+'€';}
+
+// ── Render ───────────────────────────────────────────────────
+function renderDashboard(){renderKPIs();renderDonut();renderOverages();renderUpgradeTable();renderAllClients();}
+
+function renderKPIs(){
+  const crit=allClients.filter(c=>getStatus(c)==='critical').length;
+  const high=allClients.filter(c=>getStatus(c)==='high').length;
+  const small=allClients.filter(c=>c.plan==='S').length;
+  const surplus=allClients.reduce((s,c)=>s+c.surplus,0);
+  document.getElementById('kpi-total').textContent=allClients.length;
+  document.getElementById('kpi-crit').textContent=crit;
+  document.getElementById('kpi-high').textContent=high;
+  document.getElementById('kpi-small').textContent=small;
+  document.getElementById('kpi-surplus').textContent=fmtEur(Math.round(surplus));
+}
+
+function renderDonut(){
+  const source = allClients;
+  const counts={S:0,M:0,L:0};
+  source.forEach(c=>{if(counts[c.plan]!==undefined)counts[c.plan]++;});
+  const total=source.length||1;
+  const colors={S:'#4d8bff',M:'#ffc94d',L:'#00e5a0'};
+  const canvas=document.getElementById('donutChart');
+  canvas.width=140;canvas.height=140;
+  const ctx=canvas.getContext('2d');
+  let start=-Math.PI/2;
+  ['S','M','L'].forEach(plan=>{
+    const count=counts[plan]; if(!count)return;
+    const slice=(count/total)*2*Math.PI;
+    ctx.beginPath();ctx.arc(70,70,55,start,start+slice);ctx.arc(70,70,37,start+slice,start,true);ctx.closePath();ctx.fillStyle=colors[plan];ctx.fill();start+=slice;
+  });
+  ctx.fillStyle='#11141a';ctx.beginPath();ctx.arc(70,70,35,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#e8eaf0';ctx.font='bold 20px Syne';ctx.textAlign='center';ctx.textBaseline='middle';  ctx.fillText(allClients.length,70,70);
+  document.getElementById('donut-legend').innerHTML=['S','M','L'].map(p=>{
+    const c=counts[p]; if(!c) return '';
+    return`<div class="legend-item"><div class="legend-dot" style="background:${colors[p]}"></div><div class="legend-name">${PLANS[p].name}</div><div class="legend-count">${c} abos</div><div class="legend-pct" style="color:${colors[p]}">${Math.round(c/total*100)}%</div></div>`;
+  }).join('');
+}
+
+function renderOverages(){
+  const sorted=[...allClients].sort((a,b)=>b.surplus-a.surplus).slice(0,5);
+  const el=document.getElementById('overage-list');
+  if(!sorted.length){el.innerHTML='<div class="empty">Aucune surfacturation détectée</div>';return;}
+  el.innerHTML=sorted.map(c=>{
+    const cls=getStatus(c)==='critical'?'critical':'high';
+    return`<div class="overage-item ${cls}" onclick="openModal('${c.id}')">
+      <div><div class="overage-name">${c.name}</div><div class="overage-plan">${PLANS[c.plan].name} ${c.interval==='year'?'yearly':'monthly'}</div></div>
+      <div class="overage-right"><div class="overage-amt ${cls}">+${fmtEur(c.surplus)}</div><div class="overage-base">${fmtEur(c.nextInvoice)} / base ${fmtEur(c.basePrice)}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderUpgradeTable(){
+  const sorted=[...allClients].sort((a,b)=>surplusPct(b)-surplusPct(a));
+  const tbody=document.getElementById('upgrade-table-body');
+  if(!sorted.length){tbody.innerHTML='<tr><td colspan="7" class="empty">Aucune opportunité détectée</td></tr>';return;}
+  tbody.innerHTML=sorted.map(c=>{
+    const contacted=isContacted(c.subId);
+    return`<tr class="${contacted?'contacted-row':''}" onclick="openModal('${c.id}')">
+      <td><div class="client-name">${c.name}</div><div class="client-email">${c.email}</div></td>
+      <td>${planBadge(c.plan)}${intervalBadge(c.interval)}</td>
+      <td style="font-family:'DM Mono',monospace">${fmtEur(c.basePrice)}</td>
+      <td style="font-family:'DM Mono',monospace;color:${getStatus(c)==='critical'?'var(--danger)':'var(--warn)'}">${fmtEur(c.nextInvoice)}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--accent)">+${fmtEur(c.surplus)} <span style="font-size:10px;color:var(--muted)">(+${Math.round(surplusPct(c)*100)}%)</span></td>
+      <td><span class="score-pill ${statusClass(c)}"><span class="score-dot"></span>${statusLabel(c)}</span></td>
+      <td><button class="contacted-btn ${contacted?'done':''}" onclick="event.stopPropagation();toggleContacted('${c.subId}')">${contacted?'✓ Contacté':'Marquer contacté'}</button></td>
+    </tr>`;
+  }).join('');
+}
+
+let currentFilter='all', currentSearch='';
+function renderAllClients(){
+  let data=[...allClients];
+  if(currentFilter==='S') data=data.filter(c=>c.plan==='S');
+  else if(currentFilter==='M') data=data.filter(c=>c.plan==='M');
+  else if(currentFilter==='L') data=data.filter(c=>c.plan==='L');
+  else if(currentFilter==='over') data=data.filter(c=>getStatus(c)==='critical');
+  if(currentSearch){const s=currentSearch.toLowerCase();data=data.filter(c=>c.name.toLowerCase().includes(s)||c.email.toLowerCase().includes(s));}
+  data.sort((a,b)=>surplusPct(b)-surplusPct(a));
+  const tbody=document.getElementById('all-clients-body');
+  const noRes=document.getElementById('no-results');
+  if(!data.length){tbody.innerHTML='';noRes.style.display='block';return;}
+  noRes.style.display='none';
+  tbody.innerHTML=data.map(c=>`<tr onclick="openModal('${c.id}')">
+    <td><div class="client-name">${c.name}</div><div class="client-email">${c.email}</div></td>
+    <td>${planBadge(c.plan)}${intervalBadge(c.interval)}</td>
+    <td style="font-family:'DM Mono',monospace">${fmtEur(c.basePrice)}</td>
+    <td style="font-family:'DM Mono',monospace;color:${getStatus(c)==='critical'?'var(--danger)':'var(--warn)'}">${fmtEur(c.nextInvoice)}</td>
+    <td style="font-family:'DM Mono',monospace;color:var(--accent)">+${fmtEur(c.surplus)}</td>
+    <td><span class="score-pill ${statusClass(c)}"><span class="score-dot"></span>${statusLabel(c)}</span></td>
+    <td><button class="action-btn" onclick="event.stopPropagation();openModal('${c.id}')">Voir</button></td>
+  </tr>`).join('');
+}
+
+function filterClients(f,btn){currentFilter=f;document.querySelectorAll('[data-filter]').forEach(b=>b.classList.remove('active','M','L'));btn.classList.add('active');if(!['all','over'].includes(f))btn.classList.add(f);renderAllClients();}
+function searchClients(val){currentSearch=val;renderAllClients();}
+
+
+
+// ── Modal ────────────────────────────────────────────────────
+async function fetchLastInvoice(customerId){
+  try{
+    const data = await stripeGet('/v1/invoices', {customer: customerId, limit: 1, status: 'paid', expand: ['data.charge']});
+    return data.data?.[0] || null;
+  }catch(e){ return null; }
+}
+
+function renderModalBody(c, invoice, axeptioUsers){
+  const target=PLANS[c.plan].next;
+  const mrrGain=target?(PLANS[target].base[c.interval]-PLANS[c.plan].base[c.interval]):0;
+  const contacted=isContacted(c.subId);
+  const cObj=loadContacted()[c.subId];
+  const cDate=cObj?new Date(cObj.ts).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+
+  let usersRow = '';
+  if(axeptioUsers === 'loading'){
+    usersRow = `<div class="modal-row"><span class="modal-row-label">Contacts Axeptio</span><span class="modal-row-val" style="color:var(--muted);font-size:12px;font-family:'DM Mono',monospace">Chargement...</span></div>`;
+  } else if(c.projectId) {
+    const emails = (axeptioUsers||[]).map(u => u.email).filter(Boolean);
+    if(emails.length){
+      usersRow = `<div class="modal-row"><span class="modal-row-label">Contacts Axeptio</span><span class="modal-row-val" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        ${emails.map(e=>`<a href="https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(e)}&su=${encodeURIComponent('Votre Abonnement Axeptio')}" target="_blank" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent3);text-decoration:none;border-bottom:1px dashed var(--accent3)">${e} ✉️</a>`).join('')}
+      </span></div>`;
+    } else {
+      usersRow = `<div class="modal-row"><span class="modal-row-label">Contacts Axeptio</span><span class="modal-row-val" style="color:var(--muted);font-size:11px;font-family:'DM Mono',monospace">Aucun contact trouvé</span></div>`;
+    }
+  }
+
+  if(invoice===null){
+    invoiceRow=`<div class="modal-row"><span class="modal-row-label">Dernière facture</span><span class="modal-row-val" style="color:var(--muted);font-size:12px">Aucune facture trouvée</span></div>`;
+  } else if(invoice==='loading'){
+    invoiceRow=`<div class="modal-row"><span class="modal-row-label">Dernière facture</span><span class="modal-row-val" style="color:var(--muted);font-size:12px;font-family:'DM Mono',monospace">Chargement...</span></div>`;
+  } else {
+    const invDate=new Date(invoice.created*1000).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
+    const invAmt=fmtEur(invoice.amount_paid/100);
+    const pdfUrl=invoice.invoice_pdf;
+    invoiceRow=`<div class="modal-row"><span class="modal-row-label">Dernière facture</span><span class="modal-row-val" style="display:flex;align-items:center;gap:10px;justify-content:flex-end">
+      <span style="font-family:'DM Mono',monospace">${invDate} · ${invAmt}</span>
+      ${pdfUrl?`<a href="${pdfUrl}" target="_blank"><button class="action-btn primary" style="padding:4px 10px;font-size:11px">⬇ PDF</button></a>`:''}
+      <a href="https://dashboard.stripe.com/invoices/${invoice.id}" target="_blank"><button class="action-btn" style="padding:4px 10px;font-size:11px">↗ Stripe</button></a>
+    </span></div>`;
+  }
+
+  return`
+    <div class="modal-row"><span class="modal-row-label">Customer ID</span><span class="modal-row-val" style="font-family:'DM Mono',monospace;font-size:11px">${c.stripeId}</span></div>
+    <div class="modal-row"><span class="modal-row-label">Subscription ID</span><span class="modal-row-val" style="font-family:'DM Mono',monospace;font-size:11px">${c.subId}</span></div>
+    <div class="modal-row"><span class="modal-row-label">Email</span><span class="modal-row-val">${c.email?`<a href="https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(c.email)}&su=${encodeURIComponent('Votre Abonnement Axeptio')}" target="_blank" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent3);text-decoration:none;border-bottom:1px dashed var(--accent3)">${c.email} ✉️</a>`:'—'}</span></div>
+    <div class="modal-row"><span class="modal-row-label">Client depuis</span><span class="modal-row-val">${c.since}</span></div>
+    <div class="modal-row"><span class="modal-row-label">Plan</span><span class="modal-row-val">${planBadge(c.plan)}${intervalBadge(c.interval)}</span></div>
+    <div class="modal-row"><span class="modal-row-label">Prix de base</span><span class="modal-row-val" style="font-family:'DM Mono',monospace">${fmtEur(c.basePrice)} / ${c.interval==='year'?'an':'mois'}</span></div>
+    ${c.nextInvoice>0?`<div class="modal-row"><span class="modal-row-label">Next invoice</span><span class="modal-row-val" style="font-family:'DM Mono',monospace;color:${getStatus(c)==='critical'?'var(--danger)':'var(--warn)'}">${fmtEur(c.nextInvoice)}</span></div>`:''}
+    ${c.surplus>0?`<div class="modal-row"><span class="modal-row-label">Surplus</span><span class="modal-row-val" style="color:var(--accent);font-family:'DM Mono',monospace">+${fmtEur(c.surplus)}</span></div>`:''}
+    ${invoiceRow}
+    <div class="modal-row"><span class="modal-row-label">Statut contact</span><span class="modal-row-val"><button class="contacted-btn ${contacted?'done':''}" onclick="toggleContacted('${c.subId}')">${contacted?'✓ Contacté le '+cDate:'Marquer comme contacté'}</button></span></div>
+    ${c.projectId?`<div class="modal-row"><span class="modal-row-label">Project ID</span><span class="modal-row-val" style="font-family:'DM Mono',monospace;font-size:11px">${c.projectId}</span></div>`:''}
+
+    ${c.userId?`<div class="modal-row"><span class="modal-row-label">User ID</span><span class="modal-row-val"><a href="https://www.kitchen.axeptio.eu/users/${c.userId}" target="_blank" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent3);text-decoration:none;border-bottom:1px dashed var(--accent3)">${c.userId} ↗</a></span></div>`:''}
+    ${target?`
+    <div style="background:rgba(0,229,160,0.06);border:1px solid rgba(0,229,160,0.2);border-radius:12px;padding:16px;margin:16px 0">
+      <div style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Recommandation</div>
+      <div style="font-size:15px;font-weight:800">Upgrade vers plan ${PLANS[target].name}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">${fmtEur(PLANS[target].base[c.interval])} / ${c.interval==='year'?'an':'mois'}</div>
+      <div style="font-size:13px;color:var(--accent);font-weight:700;margin-top:8px">+${fmtEur(mrrGain)} / ${c.interval==='year'?'an':'mois'} de revenu additionnel</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="action-btn primary" style="flex:1;padding:10px" onclick="window.location.href='mailto:${c.email}?subject=Votre%20abonnement%20CMP'">✉️ Contacter</button>
+      <a href="https://dashboard.stripe.com/customers/${c.stripeId}" target="_blank" style="flex:1"><button class="action-btn" style="width:100%;padding:10px">↗ Voir sur Stripe</button></a>
+    </div>`
+    :`<div style="color:var(--muted);font-size:13px;margin-top:12px;font-style:italic">Ce client est déjà sur le plan maximum (Large).</div>`}
+  `;
+}
+
+async function openModal(id){
+  const c=allClients.find(x=>String(x.id)===String(id));
+  if(!c) return;
+  document.getElementById('modal-title').textContent=c.name;
+  document.getElementById('modal-body').innerHTML=renderModalBody(c,'loading','loading');
+  document.getElementById('modal').classList.add('open');
+  if(!isDemo && stripeKey){
+    const [inv, users] = await Promise.all([
+      fetchLastInvoice(c.stripeId),
+      fetchAxeptioUsers(c.projectId),
+    ]);
+    if(document.getElementById('modal').classList.contains('open')){
+      document.getElementById('modal-body').innerHTML=renderModalBody(c, inv, users);
+    }
+  } else {
+    document.getElementById('modal-body').innerHTML=renderModalBody(c, null, []);
+  }
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+function switchTab(t,btn){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));btn.classList.add('active');['overview','clients'].forEach(x=>{document.getElementById('tab-'+x).style.display=x===t?'block':'none';});}
+document.getElementById('stripe-key-input') && document.getElementById('stripe-key-input').addEventListener('keydown',e=>{if(e.key==='Enter')connectAndLoad();});
+
+// Init au chargement
+window.addEventListener('load', () => {
+  if(checkExistingAuth()){
+    showConnectScreen();
+  } else {
+    document.getElementById('login-screen').style.display='flex';
+    // Attend que le script Google soit chargé
+    const interval = setInterval(()=>{
+      if(window.google?.accounts?.id){ clearInterval(interval); initGoogleAuth(); }
+    }, 100);
+  }
+});
+</script>
+</body>
+</html>
